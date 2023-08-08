@@ -4,8 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-bevy = { git = "https://github.com/bevyengine/bevy", default-features = false, features = [
-  "render",
+bevy = { version = "0.11.0", default-features = false, features = [
+  "bevy_render",
+  "bevy_sprite",
+  "webgl2",
   # "bevy_winit",
   # "bevy_gilrs",
   # "bevy_audio",
@@ -14,8 +16,4 @@ bevy = { git = "https://github.com/bevyengine/bevy", default-features = false, f
   # "vorbis",
   "x11",
 ] }
-bevy-web-resizer = "0.1"
 console_error_panic_hook = "0.1"
-
-[patch.crates-io]
-bevy = { git = "https://github.com/bevyengine/bevy" }

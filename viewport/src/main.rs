@@ -1,7 +1,6 @@
 use bevy::{
     prelude::*,
-    window::{PresentMode, WindowId},
-    winit::WinitWindows,
+    window::{PresentMode, PrimaryWindow},
 };
 
 fn main() {
@@ -12,31 +11,32 @@ fn main() {
     let mut app = App::new();
 
     app.insert_resource(ClearColor(Color::rgb_u8(60, 60, 60)))
-        .insert_resource(WindowDescriptor {
-            present_mode: PresentMode::Immediate,
-            #[cfg(target_arch = "wasm32")]
-            canvas: Some("#viewport".to_string()),
-            ..Default::default()
-        })
-        .add_plugins(DefaultPlugins)
-        .add_startup_system(setup_system)
-        .add_system(spawn_on_click_system);
-
-    #[cfg(target_arch = "wasm32")]
-    app.add_system(bevy_web_resizer::web_resize_system);
+        .add_plugins(DefaultPlugins.set(WindowPlugin {
+            primary_window: Some(Window {
+                present_mode: PresentMode::Fifo,
+                #[cfg(target_arch = "wasm32")]
+                canvas: Some("#viewport".to_string()),
+                #[cfg(target_arch = "wasm32")]
+                fit_canvas_to_parent: true,
+                ..default()
+            }),
+            ..default()
+        }))
+        .add_systems(Startup, setup_system)
+        .add_systems(Update, spawn_on_click_system);
 
     app.run();
 }
 
 fn setup_system(mut commands: Commands) {
-    commands.spawn_bundle(OrthographicCameraBundle::new_2d());
+    commands.spawn(Camera2dBundle::default());
 
     const SPACING: f32 = 20.0;
     const LENGTH: f32 = 100000.0;
     const THICKNESS: f32 = 2.0;
 
     // X axis
-    commands.spawn_bundle(SpriteBundle {
+    commands.spawn(SpriteBundle {
         sprite: Sprite {
             color: Color::rgb_u8(141, 71, 79),
             custom_size: Some(Vec2::new(LENGTH, THICKNESS)),
@@ -46,7 +46,7 @@ fn setup_system(mut commands: Commands) {
     });
 
     // Y axis
-    commands.spawn_bundle(SpriteBundle {
+    commands.spawn(SpriteBundle {
         sprite: Sprite {
             color: Color::rgb_u8(112, 139, 62),
             custom_size: Some(Vec2::new(THICKNESS, LENGTH)),
@@ -56,7 +56,7 @@ fn setup_system(mut commands: Commands) {
     });
 
     for i in 1..=100 {
-        commands.spawn_bundle(SpriteBundle {
+        commands.spawn(SpriteBundle {
             sprite: Sprite {
                 color: Color::rgb_u8(72, 72, 72),
                 custom_size: Some(Vec2::new(LENGTH, THICKNESS)),
@@ -68,7 +68,7 @@ fn setup_system(mut commands: Commands) {
     }
 
     for i in -100..=-1 {
-        commands.spawn_bundle(SpriteBundle {
+        commands.spawn(SpriteBundle {
             sprite: Sprite {
                 color: Color::rgb_u8(72, 72, 72),
                 custom_size: Some(Vec2::new(LENGTH, THICKNESS)),
@@ -80,7 +80,7 @@ fn setup_system(mut commands: Commands) {
     }
 
     for j in 1..=100 {
-        commands.spawn_bundle(SpriteBundle {
+        commands.spawn(SpriteBundle {
             sprite: Sprite {
                 color: Color::rgb_u8(72, 72, 72),
                 custom_size: Some(Vec2::new(THICKNESS, LENGTH)),
@@ -92,7 +92,7 @@ fn setup_system(mut commands: Commands) {
     }
 
     for j in -100..=-1 {
-        commands.spawn_bundle(SpriteBundle {
+        commands.spawn(SpriteBundle {
             sprite: Sprite {
                 color: Color::rgb_u8(72, 72, 72),
                 custom_size: Some(Vec2::new(THICKNESS, LENGTH)),
@@ -106,30 +106,22 @@ fn setup_system(mut commands: Commands) {
 
 fn spawn_on_click_system(
     mut commands: Commands,
-    windows: Res<Windows>,
-    winit_windows: Res<WinitWindows>,
+    windows: Query<&Window, With<PrimaryWindow>>,
     mouse_input: Res<Input<MouseButton>>,
 ) {
-    if let Some(window) = windows.get_primary() {
-        if let Some(winit_window) = winit_windows.get_window(WindowId::primary()) {
-            let size = winit_window.inner_size();
-
-            if mouse_input.just_pressed(MouseButton::Left) {
-                if let Some(pos) = window.cursor_position() {
-                    commands.spawn_bundle(SpriteBundle {
-                        sprite: Sprite {
-                            color: Color::rgb_u8(141, 71, 79),
-                            custom_size: Some(Vec2::new(5.0, 5.0)),
-                            ..Default::default()
-                        },
-                        transform: Transform::from_translation(
-                            (pos - Vec2::new(window.width() / 2.0, window.height() / 2.0))
-                                .extend(0.0),
-                        ),
-                        ..Default::default()
-                    });
-                }
-            }
-        }
+    if mouse_input.just_pressed(MouseButton::Left) {
+        let Ok(window) = windows.get_single() else { return; };
+        let Some(pos) = window.cursor_position() else { return; };
+        commands.spawn(SpriteBundle {
+            sprite: Sprite {
+                color: Color::rgb_u8(141, 71, 79),
+                custom_size: Some(Vec2::new(5.0, 5.0)),
+                ..Default::default()
+            },
+            transform: Transform::from_translation(
+                (pos - Vec2::new(window.width() / 2.0, window.height() / 2.0)).extend(0.0),
+            ),
+            ..Default::default()
+        });
     }
 }
